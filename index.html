@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MET IT Inventory Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: white;
+      color: #222;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #222;
+    }
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+    }
+    .legend-circle {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+    }
+    .legend-red { background-color: #e74c3c; }
+    .legend-yellow { background-color: #f1c40f; }
+    .legend-green { background-color: #27ae60; }
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 15px;
+      align-items: start; /* ensures independent card heights */
+    }
+    .card {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 15px;
+      transition: 0.3s;
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+    .arrow {
+      font-size: 18px;
+      transition: transform 0.3s;
+      cursor: pointer;
+    }
+    .expanded .arrow {
+      transform: rotate(90deg);
+    }
+    .card-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .expanded .card-content {
+      max-height: 500px; /* adjust as needed */
+    }
+    textarea {
+      width: 100%;
+      height: 60px;
+      margin-top: 5px;
+      border-radius: 5px;
+      border: 1px solid #bbb;
+      padding: 5px;
+      resize: vertical;
+    }
+    .quantity-input {
+      width: 60px;
+      padding: 5px;
+      border: 1px solid #bbb;
+      border-radius: 5px;
+      text-align: center;
+    }
+    button {
+      margin-top: 20px;
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #c0392b;
+    }
+  </style>
+</head>
+<body>
+  <h1>MET IT Inventory Tracker</h1>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-circle legend-green"></div> In Stock</div>
+    <div class="legend-item"><div class="legend-circle legend-yellow"></div> Running Low</div>
+    <div class="legend-item"><div class="legend-circle legend-red"></div> Immediate Action Needed</div>
+  </div>
+
+  <div class="dashboard" id="dashboard"></div>
+  <div style="text-align:center;">
+    <button onclick="confirmReset()">Reset Dashboard</button>
+  </div>
+
+  <script>
+    const items = [
+      { name: 'UtechSmart 11 in 1 USB C Hub (2 HDMI, Ethernet, VGA, 100W Power Passthrough)', purpose: 'Docking Station for Faculty/Staff', quantity: 0, full: 5, low: 3, critical: 1 },
+      { name: 'Lenovo 300 USB Keyboard - US English', purpose: 'Wired Keyboard for Faculty/Staff', quantity: 5, full: 19, low: 3, critical: 0 },
+      { name: 'Lenovo 300 USB Mouse', purpose: 'Wired Mouse for Faculty/Staff', quantity: 8, full: 10, low: 3, critical: 0 },
+      { name: 'Evolve 20 Wired Headset (2025 Edition)', purpose: 'Headset for Faculty/Staff', quantity: 0, full: 5, low: 3, critical: 1 },
+      { name: 'Jabra Speak 510+ Portable Speaker for Music and Calls', purpose: 'Conference Speaker for Faculty/Staff', quantity: 15, full: 5, low: 2, critical: 1 },
+      { name: 'Jabra Speak 510+ Portable Speaker for Music and Calls', purpose: 'Webcam for Faculty/Staff', quantity: 0, full: 5, low: 2, critical: 1 },
+      { name: 'MP C6003 Waste Toner Bottle (ID: 416890)', purpose: 'Maintenance for Ricoh Printers', quantity: 2, full: 3, low: null, critical: 1 },
+      { name: 'MP C6003 Black Print Cartridge (ID: 841849)', purpose: 'Maintenance for Ricoh Printers', quantity: 4, full: 5, low: 2, critical: 1 },
+      { name: 'MP C6003 Cyan Print Cartridge (ID: 841852)', purpose: 'Maintenance for Ricoh Printers', quantity: 6, full: 5, low: 2, critical: 1 },
+      { name: 'MP C6003 Magenta Print Cartridge (ID: 841851)', purpose: 'Maintenance for Ricoh Printers', quantity: 6, full: 5, low: 2, critical: 1 },
+      { name: 'MP C6003 Yellow Print Cartridge (ID: 841850)', purpose: 'Maintenance for Ricoh Printers', quantity: 6, full: 5, low: 2, critical: 1 },
+      { name: 'MP 3554 Black Print Cartridge (ID: 842124)', purpose: 'Maintenance for Ricoh Printers', quantity: 1, full: 1, low: null, critical: 0 },
+      { name: 'Angusplay USB C Cable (Thunderbolt 5/4/3 Compatible) 6 ft', purpose: 'Connection to various computer devices', quantity: 0, full: 6, low: 2, critical: 1 },
+      { name: 'Tripp Lite High Speed HDMI Cable with Ethernet (6 ft)', purpose: 'Connection to monitors', quantity: 3, full: 6, low: null, critical: 2 },
+      { name: 'StarTech.com 6ft CAT6 Ethernet Cable', purpose: 'Connection to internet', quantity: 1, full: 10, low: 3, critical: 1 },
+      { name: 'StarTech.com 5ft CAT6 Ethernet Cable', purpose: 'Connection to internet', quantity: 3, full: 6, low: null, critical: 2 },
+      { name: 'StarTech.com 7ft CAT6 Ethernet Cable', purpose: 'Connection to internet', quantity: 2, full: 10, low: 3, critical: 1 },
+      { name: 'StarTech.com 10ft CAT6 Ethernet Cable', purpose: 'Connection to internet', quantity: 4, full: 6, low: null, critical: 2 },
+      { name: 'StarTech.com 14ft CAT6 Ethernet Cable', purpose: 'Connection to internet', quantity: 3, full: 6, low: 3, critical: 1 },
+      { name: 'Tripp Lite 6ft Display Port Cable with Latches (Part# P580-006)', purpose: 'Connection to monitors', quantity: 24, full: 6, low: null, critical: 2 }
+    ];
+
+    function getColor(item) {
+      if (item.quantity <= item.critical) return '#e74c3c';
+      if (item.low && item.quantity <= item.low) return '#f1c40f';
+      if (item.quantity >= item.full) return '#27ae60';
+      return '#27ae60';
+    }
+
+    function renderCards() {
+      const dashboard = document.getElementById('dashboard');
+      dashboard.innerHTML = '';
+      items.forEach((item, index) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.backgroundColor = getColor(item);
+        card.innerHTML = `
+          <div class="card-header">
+            <h3>${item.name}</h3>
+            <span class="arrow" onclick="toggleCard(${index})">▶</span>
+          </div>
+          <div class="card-content">
+            <p><strong>Purpose:</strong> ${item.purpose}</p>
+            <p><strong>Quantity in stock:</strong> 
+              <input class="quantity-input" type="number" min="0" value="${item.quantity}" onchange="updateQuantity(${index}, this)">
+            </p>
+            <p><strong>Notes:</strong></p>
+            <textarea onchange="updateNotes(${index}, this.value)">${item.notes || ''}</textarea>
+          </div>
+        `;
+        dashboard.appendChild(card);
+      });
+    }
+
+    function toggleCard(index) {
+      const cards = document.querySelectorAll('.card');
+      cards[index].classList.toggle('expanded');
+    }
+
+    function updateQuantity(index, inputEl) {
+      let value = parseInt(inputEl.value);
+      if (isNaN(value) || value < 0) value = 0; // prevent negative numbers
+      items[index].quantity = value;
+      inputEl.value = value; // update input if it was negative
+      const card = document.querySelectorAll('.card')[index];
+      card.style.backgroundColor = getColor(items[index]);
+      saveData();
+    }
+
+    function updateNotes(index, text) {
+      items[index].notes = text;
+      saveData();
+    }
+
+    function saveData() {
+      localStorage.setItem('inventoryData', JSON.stringify(items));
+    }
+
+    function loadData() {
+      const data = localStorage.getItem('inventoryData');
+      if (data) {
+        const savedItems = JSON.parse(data);
+        savedItems.forEach((saved, i) => {
+          if (items[i]) items[i] = { ...items[i], ...saved };
+        });
+      }
+    }
+
+    function confirmReset() {
+      if (confirm('Are you sure you want to reset?')) {
+        localStorage.removeItem('inventoryData');
+        location.reload();
+      }
+    }
+
+    loadData();
+    renderCards();
+  </script>
+</body>
+</html>
